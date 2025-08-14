@@ -19,6 +19,7 @@ interface ChatPanelProps {
 export default function ChatPanel({ onNewProject }: ChatPanelProps) {
   const { chatHistory, addMessage, currentCode, setCurrentCode, isLoading, setIsLoading } = useProject();
   const [followUp, setFollowUp] = useState('');
+  const [isNewSession, setIsNewSession] = useState(true);
   const { toast } = useToast();
 
   const handleFollowUp = async (e: React.FormEvent) => {
@@ -28,17 +29,37 @@ export default function ChatPanel({ onNewProject }: ChatPanelProps) {
     setIsLoading(true);
     addMessage({ role: 'user', content: followUp });
     setFollowUp('');
+    setIsNewSession(false);
 
     const result = await generateCodeAction(followUp, currentCode);
 
     if (result.success && result.data) {
       setCurrentCode(result.data.modifiedCode);
-      addMessage({ role: 'system', content: 'Code updated successfully.' });
+      const systemMessage = result.data.instructions || 'Code updated successfully.';
+      addMessage({ role: 'system', content: systemMessage });
+      setFollowUp(systemMessage); // Show AI response in textarea
     } else {
       toast({ title: 'Update Failed', description: result.error, variant: 'destructive' });
-      addMessage({ role: 'system', content: `Error: ${result.error}` });
+      const errorMessage = `Error: ${result.error}`;
+      addMessage({ role: 'system', content: errorMessage });
+      setFollowUp(errorMessage); // Show error in textarea
     }
     setIsLoading(false);
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!isNewSession) {
+      setFollowUp('');
+      setIsNewSession(true);
+    }
+    setFollowUp(e.target.value);
+  }
+
+  const handleTextareaFocus = () => {
+    if (!isNewSession) {
+      setFollowUp('');
+      setIsNewSession(true);
+    }
   };
   
   return (
@@ -85,7 +106,8 @@ export default function ChatPanel({ onNewProject }: ChatPanelProps) {
         <form onSubmit={handleFollowUp} className="relative">
           <Textarea
             value={followUp}
-            onChange={(e) => setFollowUp(e.target.value)}
+            onChange={handleTextareaChange}
+            onFocus={handleTextareaFocus}
             placeholder="Make the header sticky..."
             className="pr-12"
             onKeyDown={(e) => {
