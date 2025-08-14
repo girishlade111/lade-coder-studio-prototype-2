@@ -46,7 +46,11 @@ const modifyWebsitePrompt = ai.definePrompt({
   Return the complete modified code, and also provide instructions and status updates related to the code modification process.
 
   Ensure that the modified code is functional and adheres to best practices.
-  `, 
+  `,
+  config: {
+    maxOutputTokens: 1000000,
+    temperature: 0,
+  }
 });
 
 const modifyWebsiteFlow = ai.defineFlow(
